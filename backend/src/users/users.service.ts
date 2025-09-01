@@ -29,14 +29,18 @@ export class UsersService implements OnModuleInit {
   }
 
   async getUsers() {
-    return this.userRepository.find({ relations: ['company'] });
+    const users = await this.userRepository.find({ relations: ['company'] });
+    return users.map(({ password, ...rest }) => rest);
   }
 
   async getUserById(id: number) {
-    return this.userRepository.findOne({
+    const found = await this.userRepository.findOne({
       where: { id },
       relations: ['company'],
     });
+    if (!found) return null as any;
+    const { password, ...rest } = found as any;
+    return rest;
   }
 
     async createUser(user: CreateUserDto) {
@@ -53,7 +57,9 @@ export class UsersService implements OnModuleInit {
         userToCreate.company = { id: user.companyId } as any;
       }
       const newUser = this.userRepository.create(userToCreate);
-      return await this.userRepository.save(newUser);
+      const saved = await this.userRepository.save(newUser);
+      const { password, ...rest } = saved as any;
+      return rest;
     } catch (error) {
       console.error('Error creating user:', error);
       if (error.code === 'ER_DUP_ENTRY') {
@@ -85,7 +91,9 @@ export class UsersService implements OnModuleInit {
       (existingUser as any).company = user.companyId ? ({ id: user.companyId } as any) : null as any;
     }
     const updatedUser = { ...existingUser, ...user } as any;
-    return this.userRepository.save(updatedUser);
+    const saved = await this.userRepository.save(updatedUser);
+    const { password, ...rest } = saved as any;
+    return rest;
   }
 
   async deleteUser(id: number) {
@@ -96,6 +104,8 @@ export class UsersService implements OnModuleInit {
     if (!existingUser) {
       throw new Error('User not found');
     }
-    return this.userRepository.remove(existingUser);
+    const removed = await this.userRepository.remove(existingUser);
+    const { password, ...rest } = removed as any;
+    return rest;
   }
 }
